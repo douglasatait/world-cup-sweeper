@@ -144,7 +144,21 @@ fixtures["datetime_et"] = pd.to_datetime(fixtures["date"] + " " + fixtures["time
 mask_midnight = fixtures["time_et"] == "00:00"
 
 fixtures.loc[mask_midnight, "datetime_et"] = (fixtures.loc[mask_midnight, "datetime_et"] + pd.Timedelta(days=1))
-fixtures["datetime_london"] = fixtures["datetime_et"] + pd.Timedelta(hours=5)
+# fixtures["datetime_london"] = fixtures["datetime_et"] + pd.Timedelta(hours=5)
+fixtures["datetime_et"] = pd.to_datetime(
+    fixtures["date"] + " " + fixtures["time_et"]
+)
+
+# Localise to Eastern Time (handles DST automatically)
+fixtures["datetime_et"] = fixtures["datetime_et"].dt.tz_localize("US/Eastern")
+
+# Convert to UK time
+fixtures["datetime_london"] = (
+    fixtures["datetime_et"]
+    .dt.tz_convert("Europe/London")
+    .dt.tz_localize(None)
+)
+
 fixtures["datetime_london"] = pd.to_datetime(fixtures["datetime_london"])
 cols = ["datetime_london"] + [col for col in fixtures.columns if col != "datetime_london"]
 
@@ -226,7 +240,6 @@ else:
         use_container_width=True,
         hide_index=True
     )
-
 
 st.subheader("📅 Fixture List")
 
