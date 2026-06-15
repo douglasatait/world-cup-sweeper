@@ -29,11 +29,9 @@ def highlight_today(row):
 
     diff = (match_time - now).total_seconds()
 
-    # ✅ within next 24 hours
     if 0 <= diff <= 86400:
         return ['background-color: #ffd966; color: #666'] * len(row)
 
-    # ✅ already started (past few hours)
     elif -7200 <= diff < 0:
         return ['background-color: #f4cccc; color: #666'] * len(row)
     
@@ -144,15 +142,12 @@ fixtures["datetime_et"] = pd.to_datetime(fixtures["date"] + " " + fixtures["time
 mask_midnight = fixtures["time_et"] == "00:00"
 
 fixtures.loc[mask_midnight, "datetime_et"] = (fixtures.loc[mask_midnight, "datetime_et"] + pd.Timedelta(days=1))
-# fixtures["datetime_london"] = fixtures["datetime_et"] + pd.Timedelta(hours=5)
 fixtures["datetime_et"] = pd.to_datetime(
     fixtures["date"] + " " + fixtures["time_et"]
 )
 
-# Localise to Eastern Time (handles DST automatically)
 fixtures["datetime_et"] = fixtures["datetime_et"].dt.tz_localize("US/Eastern")
 
-# Convert to UK time
 fixtures["datetime_london"] = (
     fixtures["datetime_et"]
     .dt.tz_convert("Europe/London")
@@ -185,7 +180,7 @@ with st.sidebar:
     st.header("Filters")
 
     view_draw = st.checkbox("Show full sweepstake draw")
-    view_fixtures = st.checkbox("Show full fixture list")
+    view_fixtures = st.checkbox("Show full fixture list", value=True)
     
     selected_players =st.multiselect(
         "Select player(s)",
