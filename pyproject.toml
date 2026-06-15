@@ -7,5 +7,6 @@ dependencies = [
   "matplotlib>=3.10.9",
   "plotly>=6.8.0",
   "streamlit",
-  "openai"
+  "openai",
+  "tzdata>=2026.2",
 ]

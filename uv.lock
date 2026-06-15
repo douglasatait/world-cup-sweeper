@@ -2184,6 +2184,7 @@ dependencies = [
     { name = "openai" },
     { name = "plotly" },
     { name = "streamlit" },
+    { name = "tzdata" },
 ]
 
 [package.metadata]
@@ -2193,6 +2194,7 @@ requires-dist = [
     { name = "openai" },
     { name = "plotly", specifier = ">=6.8.0" },
     { name = "streamlit" },
+    { name = "tzdata", specifier = ">=2026.2" },
 ]
 
 [[package]]

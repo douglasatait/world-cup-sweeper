@@ -253,7 +253,7 @@ if view_fixtures:
         fixtures["Team A"].str.contains(search_fixtures_team, case=False, na=False) |
         fixtures["Team B"].str.contains(search_fixtures_team, case=False, na=False)
         ]
-        fixtures = fixtures[fixtures["Date (UK Kick-Off)"] >= pd.Timestamp.now()]
+        fixtures = fixtures[fixtures["Date (UK Kick-Off)"] >= pd.Timestamp.now(tz="Europe/London").tz_localize(None)]
         styled_fixtures = fixtures.style.apply(highlight_today, axis=1)
         st.dataframe(styled_fixtures, hide_index=True, use_container_width=True)    
     else:
