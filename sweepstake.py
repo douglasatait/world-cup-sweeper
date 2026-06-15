@@ -20,7 +20,7 @@ def convert_seconds(seconds):
     return f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}"
 
 def highlight_today(row):
-    now = pd.Timestamp.now()
+    now = pd.Timestamp.now(tz="Europe/London").tz_localize(None)
 
     match_time = row["Date (UK Kick-Off)"]
 
@@ -102,7 +102,7 @@ def compute_group_standings(fixtures):
     return standings
 
 def get_upcoming_fixtures_with_players(fixtures, draw_long):
-    now = pd.Timestamp.now()
+    now = pd.Timestamp.now(tz="Europe/London").tz_localize(None)
 
     fixtures = fixtures.copy()
     fixtures["Date (UK Kick-Off)"] = pd.to_datetime(fixtures["Date (UK Kick-Off)"])
@@ -217,7 +217,7 @@ today_matches = get_upcoming_fixtures_with_players(fixtures, draw_long)
 if today_matches.empty:
     st.info("No matches in the next 24 hours")
 else:
-    now = pd.Timestamp.now()
+    now = pd.Timestamp.now(tz="Europe/London").tz_localize(None)
     today_matches["KO Countdown"] = ((today_matches["Date (UK Kick-Off)"] - now).dt.total_seconds().apply(convert_seconds))
     st.dataframe(
         today_matches[[
