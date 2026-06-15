@@ -97,7 +97,8 @@ keep_cols = ["Date (UK Kick-Off)", "Stage", "Group", "Team A", "Team B", "Venue"
 draw = load_data("data/sweepstake.csv")
 ranks = load_data("data/rankings.csv")
 fixtures = load_data("data/world-cup-2026-schedule.csv").drop(columns=["status", "source"])
-
+fixtures['Score A'] = fixtures['Score A'].astype('Int64')
+fixtures['Score B'] = fixtures['Score B'].astype('Int64')
 fixtures["datetime_et"] = pd.to_datetime(fixtures["date"] + " " + fixtures["time_et"])
 
 mask_midnight = fixtures["time_et"] == "00:00"
