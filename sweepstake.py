@@ -12,6 +12,13 @@ st.title("⚽ Sweepstake")
 def load_data(file_path):
     return pd.read_csv(file_path)
 
+def convert_seconds(seconds):
+    seconds = int(max(seconds, 0)) 
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    remaining_seconds = seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{remaining_seconds:02d}"
+
 def highlight_today(row):
     now = pd.Timestamp.now()
 
@@ -163,7 +170,7 @@ draw_long = draw_long.merge(
 with st.sidebar:
     st.header("Filters")
 
-    view_draw = st.checkbox("Show full draw")
+    view_draw = st.checkbox("Show full sweepstake draw")
     view_fixtures = st.checkbox("Show full fixture list")
     
     selected_players =st.multiselect(
@@ -190,7 +197,7 @@ with col2:
     st.dataframe(player_view, hide_index=True, use_container_width=True)
 
 if view_draw:
-    st.subheader("Full Draw")
+    st.subheader("Full Draw :scroll:")
     
     search = st.text_input("Search team or player")
 
@@ -210,13 +217,17 @@ today_matches = get_upcoming_fixtures_with_players(fixtures, draw_long)
 if today_matches.empty:
     st.info("No matches in the next 24 hours")
 else:
+    now = pd.Timestamp.now()
+    today_matches["KO Countdown"] = ((today_matches["Date (UK Kick-Off)"] - now).dt.total_seconds().apply(convert_seconds))
     st.dataframe(
         today_matches[[
-            "Date (UK Kick-Off)", "Team A", "Team B", "Players"
+            "Date (UK Kick-Off)", "KO Countdown", "Team A", "Team B", "Players"
         ]],
         use_container_width=True,
         hide_index=True
     )
+
+
 st.subheader("📅 Fixture List")
 
 if view_fixtures:
