@@ -36,6 +36,8 @@ def highlight_today(row):
     else:
         return [''] * len(row)
     
+
+    
 def compute_group_standings(fixtures):
     # Only use matches with scores
     results = fixtures.dropna(subset=["Score A", "Score B"]).copy()
@@ -91,6 +93,37 @@ def compute_group_standings(fixtures):
     )
 
     return standings
+
+def get_upcoming_fixtures_with_players(fixtures, draw_long):
+    now = pd.Timestamp.now()
+
+    fixtures = fixtures.copy()
+    fixtures["Date (UK Kick-Off)"] = pd.to_datetime(fixtures["Date (UK Kick-Off)"])
+
+    upcoming = fixtures[
+        (fixtures["Date (UK Kick-Off)"] >= now) &
+        (fixtures["Date (UK Kick-Off)"] <= now + pd.Timedelta(hours=24))
+    ].copy()
+
+    if upcoming.empty:
+        return upcoming
+
+    team_to_players = (
+        draw_long.groupby("Team")["Name"]
+        .apply(lambda x: sorted(x.unique()))
+        .to_dict()
+    )
+
+    def get_players(row):
+        players_a = team_to_players.get(row["Team A"], [])
+        players_b = team_to_players.get(row["Team B"], [])
+
+        all_players = sorted(set(players_a + players_b))
+        return ", ".join(all_players)
+
+    upcoming["Players"] = upcoming.apply(get_players, axis=1)
+
+    return upcoming
 
 drop_cols = ["match_number", "date", "time_et", "time_local", "datetime_et", "country"]
 keep_cols = ["Date (UK Kick-Off)", "Stage", "Group", "Team A", "Team B", "Venue", "City", "Score A", "Score B"]
@@ -170,6 +203,20 @@ if view_draw:
 
     st.dataframe(filtered_draw, hide_index=True, use_container_width=True)
 
+st.subheader("🔥 Next 24 Hours Fixtures")
+
+today_matches = get_upcoming_fixtures_with_players(fixtures, draw_long)
+
+if today_matches.empty:
+    st.info("No matches in the next 24 hours")
+else:
+    st.dataframe(
+        today_matches[[
+            "Date (UK Kick-Off)", "Team A", "Team B", "Players"
+        ]],
+        use_container_width=True,
+        hide_index=True
+    )
 st.subheader("📅 Fixture List")
 
 if view_fixtures:
@@ -209,7 +256,7 @@ else:
         st.warning("No fixtures found for selected players")
         st.stop()
 
-    st.write(f"Teams: {', '.join(sorted(player_teams))}")
+    st.write(f"{selected_players} Teams: {', '.join(sorted(player_teams))}")
 
     st.dataframe(
         player_fixtures.sort_values(by="Date (UK Kick-Off)"),
