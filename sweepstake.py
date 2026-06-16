@@ -185,13 +185,17 @@ with st.sidebar:
     selected_players =st.multiselect(
         "Select player(s)",
         sorted(draw_long["Name"].unique()),
-        default=["Doug"]
+        default=["Doug"],
+        help='Select the players whos teams you want to view. This will also show their upcoming fixtures in the fixture list section if Show full fixture list is unticked',
+        label_visibility='visible'
     )
 
     teams = sorted(draw_long["Team"].unique())
-    selected_team = st.selectbox("Select a team", teams)
-
-
+    selected_team = st.selectbox(
+        "Select a team", 
+        teams,
+        help='Select a team and you will see who has the team and their fifa rank.',
+        label_visibility='visible')
 
 col1, col2 = st.columns(2)
 

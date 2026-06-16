@@ -11,10 +11,10 @@ match_number,stage,group,date,time_et,time_local,team_a,team_b,venue,city,countr
 10,Group Stage,E,2026-06-14,13:00,12:00,Germany,Curacao,NRG Stadium,Houston,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,7,1
 11,Group Stage,F,2026-06-14,16:00,15:00,Netherlands,Japan,AT&T Stadium,Dallas,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,2,2
 12,Group Stage,F,2026-06-14,22:00,20:00,Sweden,Tunisia,Estadio BBVA,Monterrey,Mexico,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,5,1
-13,Group Stage,H,2026-06-15,18:00,18:00,Saudi Arabia,Uruguay,Hard Rock Stadium,Miami,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
-14,Group Stage,H,2026-06-15,12:00,12:00,Spain,Cape Verde,Mercedes-Benz Stadium,Atlanta,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
-15,Group Stage,G,2026-06-15,21:00,18:00,Iran,New Zealand,SoFi Stadium,Los Angeles,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
-16,Group Stage,G,2026-06-15,15:00,12:00,Belgium,Egypt,Lumen Field,Seattle,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
+13,Group Stage,H,2026-06-15,18:00,18:00,Saudi Arabia,Uruguay,Hard Rock Stadium,Miami,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,1,1
+14,Group Stage,H,2026-06-15,12:00,12:00,Spain,Cape Verde,Mercedes-Benz Stadium,Atlanta,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,0,0
+15,Group Stage,G,2026-06-15,21:00,18:00,Iran,New Zealand,SoFi Stadium,Los Angeles,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,2,2
+16,Group Stage,G,2026-06-15,15:00,12:00,Belgium,Egypt,Lumen Field,Seattle,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,1,1
 17,Group Stage,I,2026-06-16,15:00,15:00,France,Senegal,MetLife Stadium,New York/New Jersey,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
 18,Group Stage,I,2026-06-16,18:00,18:00,Iraq,Norway,Gillette Stadium,Boston,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
 19,Group Stage,J,2026-06-16,21:00,20:00,Argentina,Algeria,Arrowhead Stadium,Kansas City,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
