@@ -19,10 +19,10 @@ match_number,stage,group,date,time_et,time_local,team_a,team_b,venue,city,countr
 18,Group Stage,I,2026-06-16,18:00,18:00,Iraq,Norway,Gillette Stadium,Boston,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,1,4
 19,Group Stage,J,2026-06-16,21:00,20:00,Argentina,Algeria,Arrowhead Stadium,Kansas City,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,3,0
 20,Group Stage,J,2026-06-16,00:00,21:00,Austria,Jordan,Levi's Stadium,San Francisco Bay Area,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,3,1
-21,Group Stage,L,2026-06-17,19:00,19:00,Ghana,Panama,BMO Field,Toronto,Canada,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
-22,Group Stage,L,2026-06-17,16:00,15:00,England,Croatia,AT&T Stadium,Dallas,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
-23,Group Stage,K,2026-06-17,13:00,12:00,Portugal,DR Congo,NRG Stadium,Houston,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
-24,Group Stage,K,2026-06-17,22:00,20:00,Uzbekistan,Colombia,Estadio Azteca,Mexico City,Mexico,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
+21,Group Stage,L,2026-06-17,19:00,19:00,Ghana,Panama,BMO Field,Toronto,Canada,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,1,0
+22,Group Stage,L,2026-06-17,16:00,15:00,England,Croatia,AT&T Stadium,Dallas,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,4,2
+23,Group Stage,K,2026-06-17,13:00,12:00,Portugal,DR Congo,NRG Stadium,Houston,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,1,1
+24,Group Stage,K,2026-06-17,22:00,20:00,Uzbekistan,Colombia,Estadio Azteca,Mexico City,Mexico,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,1,3
 25,Group Stage,A,2026-06-18,12:00,12:00,Czechia,South Africa,Mercedes-Benz Stadium,Atlanta,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
 26,Group Stage,B,2026-06-18,15:00,12:00,Switzerland,Bosnia and Herzegovina,SoFi Stadium,Los Angeles,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,
 27,Group Stage,B,2026-06-18,18:00,15:00,Canada,Qatar,BC Place,Vancouver,Canada,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,,

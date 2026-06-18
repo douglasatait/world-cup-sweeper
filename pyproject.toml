@@ -9,4 +9,5 @@ dependencies = [
   "streamlit",
   "openai",
   "tzdata>=2026.2",
+  "altair>=6.2.1",
 ]
