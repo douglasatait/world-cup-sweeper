@@ -1,5 +1,9 @@
-﻿import math
+﻿import hashlib
+import json
+import math
 import random
+from pathlib import Path
+from typing import Tuple
 
 import streamlit as st
 import pandas as pd
@@ -156,10 +160,14 @@ for col in team_columns:
         draw[col] = draw[col].apply(canonicalize_team_name)
 
 ranks["FIFA Rank"] = pd.to_numeric(ranks["FIFA Rank"], errors="coerce")
+rank_values = ranks["FIFA Rank"].dropna()
 ranks["rank_pct"] = ranks["FIFA Rank"].rank(pct=True, method="max")
 ranks["FIFA Rank"] = ranks["FIFA Rank"].astype("Int64")
 rank_pct_map = ranks.set_index("Team")["rank_pct"].to_dict()
 rank_int_map = ranks.set_index("Team")["FIFA Rank"].to_dict()
+max_rank = int(rank_values.max()) if not rank_values.empty else 100
+score_bias_power = 1.6
+DEFAULT_PREDICTION_SIMULATIONS = 1200
 fixtures = load_data("data/world-cup-2026-schedule.csv").drop(columns=["status", "source"])
 fixtures['Score A'] = fixtures['Score A'].astype('Int64')
 fixtures['Score B'] = fixtures['Score B'].astype('Int64')
@@ -247,6 +255,27 @@ def style_team_columns(df: pd.DataFrame, team_columns: list[str]):
     return df.style.apply(_style_column, axis=0)
 
 
+def _team_selection_weight(rank_value) -> float:
+    if pd.isna(rank_value):
+        return 0.0
+    normalized = max_rank - int(rank_value) + 1
+    normalized = max(normalized, 0)
+    return (normalized / max_rank) ** score_bias_power
+
+
+def _player_selection_score(row: pd.Series) -> float:
+    score = 0.0
+    for col in team_columns:
+        team = row.get(col)
+        if not isinstance(team, str):
+            continue
+        rank = rank_int_map.get(team)
+        score += _team_selection_weight(rank)
+    return score
+
+
+draw["Selection Score"] = draw.apply(_player_selection_score, axis=1)
+draw["Selection Score"] = draw["Selection Score"].round(2)
 def _team_rating(team: str) -> float:
     pct = rank_pct_map.get(team)
     if pd.isna(pct):
@@ -415,6 +444,84 @@ def compute_advancement_predictions(fixtures_df: pd.DataFrame, simulations: int 
     return folded.sort_values(by=["Group", "Advance %"], ascending=[True, False])
 
 
+CACHE_DIR = Path("data")
+PREDICTION_CACHE_PATH = CACHE_DIR / "predictions_cache.parquet"
+PREDICTION_META_PATH = CACHE_DIR / "predictions_cache_meta.json"
+
+
+def _snapshot_hash(records: Tuple[Tuple[str, str, str, str, str], ...]) -> str:
+    hasher = hashlib.sha256()
+    for rec in records:
+        hasher.update("|".join(rec).encode())
+    return hasher.hexdigest()
+
+
+def _prediction_cache_paths() -> tuple[Path, Path]:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    return PREDICTION_CACHE_PATH, PREDICTION_META_PATH
+
+
+def _load_prediction_cache(snapshot_hash: str) -> tuple[pd.DataFrame | None, dict]:
+    cache_path, meta_path = _prediction_cache_paths()
+    if not cache_path.exists() or not meta_path.exists():
+        return None, {}
+    with open(meta_path, "r", encoding="utf-8") as fd:
+        meta = json.load(fd)
+    if meta.get("snapshot") != snapshot_hash:
+        return None, {}
+    try:
+        df = pd.read_parquet(cache_path)
+        return df, meta
+    except (OSError, ValueError):
+        return None, {}
+
+
+def _persist_prediction_cache(df: pd.DataFrame, snapshot_hash: str, simulations: int) -> dict:
+    cache_path, meta_path = _prediction_cache_paths()
+    df.to_parquet(cache_path, index=False)
+    meta = {
+        "snapshot": snapshot_hash,
+        "simulations": simulations,
+        "last_updated": datetime.utcnow().isoformat(),
+    }
+    with open(meta_path, "w", encoding="utf-8") as fd:
+        json.dump(meta, fd)
+    return meta
+
+
+def get_cached_predictions(fixtures_df: pd.DataFrame, group_stats: pd.DataFrame, records: Tuple[Tuple[str, str, str, str, str], ...], simulations: int, force_refresh: bool) -> tuple[pd.DataFrame, dict, bool]:
+    snapshot_hash = _snapshot_hash(records)
+    if not force_refresh:
+        cached, meta = _load_prediction_cache(snapshot_hash)
+        if cached is not None:
+            return cached, meta, True
+    predictions = compute_advancement_predictions(fixtures_df, simulations=simulations, base_stats=group_stats)
+    meta = _persist_prediction_cache(predictions, snapshot_hash, simulations)
+    return predictions, meta, False
+
+
+def _group_stage_snapshot(fixtures_df: pd.DataFrame) -> Tuple[Tuple[str, str, str, str, str], ...]:
+    group_stage = fixtures_df[fixtures_df["Stage"] == "Group Stage"][["Group", "Team A", "Team B", "Score A", "Score B"]]
+    records = []
+    for row in group_stage.itertuples(index=False):
+        group_val = row[0]
+        team_a = row[1]
+        team_b = row[2]
+        score_a = row[3]
+        score_b = row[4]
+        records.append(
+            (
+                str(group_val) if group_val not in (None, "") else "",
+                str(team_a) if team_a is not None else "",
+                str(team_b) if team_b is not None else "",
+                "" if pd.isna(score_a) else str(int(score_a)),
+                "" if pd.isna(score_b) else str(int(score_b)),
+            )
+        )
+    return tuple(records)
+
+
+
 with st.sidebar:
     st.header("Filters & context")
     st.caption("Highlight the players and teams you care about.")
@@ -427,10 +534,11 @@ with st.sidebar:
     )
 
     teams = sorted(draw_long["Team"].unique())
-    selected_team = st.selectbox(
-        "Inspect a team", 
+    selected_teams = st.multiselect(
+        "Inspect team(s)",
         teams,
-        help="See who owns this country in the sweepstake along with their ranking.",
+        default=teams[:2],
+        help="See who owns these countries and where they rank in the draw.",
         label_visibility="visible"
     )
 
@@ -440,22 +548,11 @@ player_fixtures = fixtures[
 ].copy()
 player_fixtures = player_fixtures.sort_values(by="Date (UK Kick-Off)")
 
-team_view = draw_long[draw_long["Team"] == selected_team]
+team_view = draw_long[draw_long["Team"].isin(selected_teams)]
 player_view = draw[draw["Name"].isin(selected_players)]
 today_matches = get_upcoming_fixtures_with_players(fixtures, draw_long)
 group_stats = _build_group_stats(fixtures)
-predictions_df = compute_advancement_predictions(fixtures, simulations=1200, base_stats=group_stats)
-current_ranking = _group_ranking_df(group_stats)
-third_place_df = current_ranking[current_ranking["GroupRank"] == 3].copy()
-third_place_df = third_place_df.merge(
-    predictions_df[["Team", "Advance %", "Status", "FIFA Rank"]],
-    on="Team",
-    how="left",
-    suffixes=("", "")
-)
-third_place_df = third_place_df.sort_values(by="Advance %", ascending=False)
-third_place_display = third_place_df.copy()
-third_place_display["Advance %"] = third_place_display["Advance %"].apply(lambda x: f"{x:,.1f}%")
+records = _group_stage_snapshot(fixtures)
 
 tabs = st.tabs([
     "Highlights",
@@ -492,7 +589,10 @@ with tabs[0]:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown(f"### {selected_team} ownership")
+        title = "Selected team ownership" if len(selected_teams) <= 1 else "Selected teams ownership"
+        if selected_teams:
+            title = f"Ownership ({', '.join(selected_teams)})"
+        st.markdown(f"### {title}")
         st.dataframe(
             style_team_columns(team_view, ["Team"]),
             hide_index=True,
@@ -536,6 +636,7 @@ with tabs[2]:
         draw["Team 3"].str.contains(search_draw, case=False, na=False) |
         draw["Name"].str.contains(search_draw, case=False, na=False)
     ]
+    filtered_draw = filtered_draw.sort_values(by=["Selection Score", "Name"], ascending=[False, True])
     styled_draw = style_team_columns(filtered_draw, ["Team 1", "Team 2", "Team 3"])
     st.dataframe(styled_draw, hide_index=True, use_container_width=True)
 
@@ -561,6 +662,17 @@ with tabs[3]:
 with tabs[4]:
     st.subheader("Advancement Predictions")
     st.markdown("Simulation-based chances combine the current group standings with projected outcomes for the remaining matches.")
+    force_recalc = st.button("Recalculate predictions", key="recalc_predictions", help="Refreshes based on the latest fixtures and overwrites the cached results.")
+    predictions_df, cache_meta, from_cache = get_cached_predictions(
+        fixtures,
+        group_stats,
+        records,
+        simulations=DEFAULT_PREDICTION_SIMULATIONS,
+        force_refresh=force_recalc
+    )
+    if cache_meta:
+        status = "cached" if from_cache and not force_recalc else "computed"
+        st.caption(f"Last updated {cache_meta.get('last_updated')} using {cache_meta.get('simulations')} simulations ({status}).")
     if predictions_df.empty:
         st.info("No prediction data available yet.")
     else:
@@ -572,11 +684,19 @@ with tabs[4]:
             hide_index=True
         )
         st.markdown("### Current third-placed teams")
-        if third_place_display.empty:
-            st.info("No third-place data available yet.")
-        else:
-            st.dataframe(
-                third_place_display[["Group", "Team", "Points", "GD", "GF", "Advance %", "Status"]],
-                use_container_width=True,
-                hide_index=True
-            )
+        current_ranking = _group_ranking_df(group_stats)
+        third_place_df = current_ranking[current_ranking["GroupRank"] == 3].copy()
+        third_place_df = third_place_df.merge(
+            predictions_df[["Team", "Advance %", "Status", "FIFA Rank"]],
+            on="Team",
+            how="left",
+            suffixes=("", "")
+        )
+        third_place_df = third_place_df.sort_values(by="Advance %", ascending=False)
+        third_place_display = third_place_df.copy()
+        third_place_display["Advance %"] = third_place_display["Advance %"].apply(lambda x: f"{x:,.1f}%")
+        st.dataframe(
+            third_place_display[["Group", "Team", "Points", "GD", "GF", "Advance %", "Status"]],
+            use_container_width=True,
+            hide_index=True
+        )
