@@ -1,12 +1,14 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcolors
 import plotly.express as px
 from datetime import datetime
 
 st.set_page_config(page_title="Sweepstake", layout="wide")
 
 st.title("⚽ Sweepstake")
+st.markdown("Use the tabs to jump between the next fixtures, the full schedule, the draw colours, and the group standings.")
 
 @st.cache_data
 def load_data(file_path):
@@ -134,6 +136,12 @@ drop_cols = ["match_number", "date", "time_et", "time_local", "datetime_et", "co
 keep_cols = ["Date (UK Kick-Off)", "Stage", "Group", "Team A", "Team B", "Venue", "City", "Score A", "Score B"]
 draw = load_data("data/sweepstake.csv")
 ranks = load_data("data/rankings.csv")
+
+ranks["FIFA Rank"] = pd.to_numeric(ranks["FIFA Rank"], errors="coerce")
+rank_values = ranks["FIFA Rank"]
+ranks["rank_pct"] = ranks["FIFA Rank"].rank(pct=True, method="max")
+ranks["FIFA Rank"] = rank_values.astype("Int64")
+team_rank_map = ranks.set_index("Team")["rank_pct"].to_dict()
 fixtures = load_data("data/world-cup-2026-schedule.csv").drop(columns=["status", "source"])
 fixtures['Score A'] = fixtures['Score A'].astype('Int64')
 fixtures['Score B'] = fixtures['Score B'].astype('Int64')
@@ -175,137 +183,173 @@ draw_long = draw_long.merge(
     on="Team",
     how="left"
 )
+draw_long["FIFA Rank"] = draw_long["FIFA Rank"].astype("Int64")
+
+def _get_contrast_color(hex_color: str) -> str:
+    red = int(hex_color[1:3], 16)
+    green = int(hex_color[3:5], 16)
+    blue = int(hex_color[5:7], 16)
+    brightness = (red * 299 + green * 587 + blue * 114) / 1000
+    return "#000000" if brightness > 160 else "#ffffff"
+
+def _team_rank_color(team_name: str) -> str:
+    if not isinstance(team_name, str):
+        return ""
+
+    rank = team_rank_map.get(team_name)
+    if pd.isna(rank):
+        return ""
+
+    try:
+        rank_value = float(rank)
+    except (TypeError, ValueError):
+        return ""
+
+    normalized = 1.0 - rank_value
+    normalized = max(0.0, min(1.0, normalized))
+    rgba = plt.cm.RdYlGn(normalized)
+    hex_color = mcolors.to_hex(rgba)
+    contrast = _get_contrast_color(hex_color)
+    return f"background-color: {hex_color}; color: {contrast}"
+
+def style_team_columns(df: pd.DataFrame, team_columns: list[str]):
+    existing_columns = [col for col in team_columns if col in df.columns]
+    if not existing_columns:
+        return df
+
+    def _style_column(column: pd.Series) -> pd.Series:
+        if column.name in existing_columns:
+            return column.map(_team_rank_color)
+        return pd.Series([""] * len(column), index=column.index)
+
+    return df.style.apply(_style_column, axis=0)
+
 
 with st.sidebar:
-    st.header("Filters")
-
-    view_draw = st.checkbox("Show full sweepstake draw")
-    view_fixtures = st.checkbox("Show full fixture list", value=True)
-    
-    selected_players =st.multiselect(
-        "Select player(s)",
+    st.header("Filters & context")
+    st.caption("Highlight the players and teams you care about.")
+    selected_players = st.multiselect(
+        "Player(s)",
         sorted(draw_long["Name"].unique()),
         default=["Doug"],
-        help='Select the players whos teams you want to view. This will also show their upcoming fixtures in the fixture list section if Show full fixture list is unticked',
-        label_visibility='visible'
+        help="Show fixtures and draw entries for these players.",
+        label_visibility="visible"
     )
 
     teams = sorted(draw_long["Team"].unique())
     selected_team = st.selectbox(
-        "Select a team", 
+        "Inspect a team", 
         teams,
-        help='Select a team and you will see who has the team and their fifa rank.',
-        label_visibility='visible')
+        help="See who owns this country in the sweepstake along with their ranking.",
+        label_visibility="visible"
+    )
 
-col1, col2 = st.columns(2)
+player_teams = draw_long[draw_long["Name"].isin(selected_players)]["Team"].unique()
+player_fixtures = fixtures[
+    fixtures["Team A"].isin(player_teams) | fixtures["Team B"].isin(player_teams)
+].copy()
+player_fixtures = player_fixtures.sort_values(by="Date (UK Kick-Off)")
 
-with col1:
-    st.subheader(f"Owner of {selected_team} :man_technologist:")
-    team_view = draw_long[draw_long["Team"] == selected_team]
-    st.dataframe(team_view, hide_index=True, use_container_width=True)
-
-with col2:
-    st.subheader("Selected Players :triumph:")
-    player_view = draw[draw["Name"].isin(selected_players)]
-    st.dataframe(player_view, hide_index=True, use_container_width=True)
-
-if view_draw:
-    st.subheader("Full Draw :scroll:")
-    
-    search = st.text_input("Search team or player")
-
-    filtered_draw = draw[
-        draw["Team 1"].str.contains(search, case=False, na=False) |
-        draw["Team 2"].str.contains(search, case=False, na=False) |
-        draw["Team 3"].str.contains(search, case=False, na=False) |
-        draw["Name"].str.contains(search, case=False, na=False) 
-    ]
-
-    st.dataframe(filtered_draw, hide_index=True, use_container_width=True)
-
-st.subheader("🔥 Next 24 Hours Fixtures")
-
+team_view = draw_long[draw_long["Team"] == selected_team]
+player_view = draw[draw["Name"].isin(selected_players)]
 today_matches = get_upcoming_fixtures_with_players(fixtures, draw_long)
 
-if today_matches.empty:
-    st.info("No matches in the next 24 hours")
-else:
-    now = pd.Timestamp.now(tz="Europe/London").tz_localize(None)
-    today_matches["KO Countdown"] = ((today_matches["Date (UK Kick-Off)"] - now).dt.total_seconds().apply(convert_seconds))
-    st.dataframe(
-        today_matches[[
-            "Date (UK Kick-Off)", "KO Countdown", "Team A", "Team B", "Players"
-        ]],
-        use_container_width=True,
-        hide_index=True
-    )
+tabs = st.tabs([
+    "Highlights",
+    "Fixture Explorer",
+    "Sweepstake Draw",
+    "Group Standings"
+])
 
-st.subheader("📅 Fixture List")
-
-if view_fixtures:
-    
-    show_upcoming = st.checkbox("Show only upcoming matches", value=True)
-    search_fixtures_team = st.text_input("Search team")
-
-    if show_upcoming:
-        fixtures = fixtures[
-        fixtures["Team A"].str.contains(search_fixtures_team, case=False, na=False) |
-        fixtures["Team B"].str.contains(search_fixtures_team, case=False, na=False)
-        ]
-        fixtures = fixtures[fixtures["Date (UK Kick-Off)"] >= pd.Timestamp.now(tz="Europe/London").tz_localize(None)]
-        styled_fixtures = fixtures.style.apply(highlight_today, axis=1)
-        st.dataframe(styled_fixtures, hide_index=True, use_container_width=True)    
+with tabs[0]:
+    st.subheader("Next 24 Hours Fixtures")
+    st.markdown("Fixtures are grouped by the UK kickoff time so you can track the busiest window.")
+    if today_matches.empty:
+        st.info("No matches in the next 24 hours. Check back later!")
     else:
-        fixtures = fixtures[
+        now = pd.Timestamp.now(tz="Europe/London").tz_localize(None)
+        upcoming_display = today_matches.copy()
+        upcoming_display["KO Countdown"] = ((upcoming_display["Date (UK Kick-Off)"] - now).dt.total_seconds().apply(convert_seconds))
+        st.dataframe(
+            upcoming_display[[
+                "Date (UK Kick-Off)", "KO Countdown", "Team A", "Team B", "Players"
+            ]],
+            use_container_width=True,
+            hide_index=True
+        )
+
+    st.divider()
+
+    st.subheader("Player & Team Snapshot")
+    if len(player_teams):
+        st.caption(f"Selected players own: {', '.join(sorted(player_teams))}")
+    else:
+        st.caption("No teams assigned to the selected players yet.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"### {selected_team} ownership")
+        st.dataframe(
+            style_team_columns(team_view, ["Team"]),
+            hide_index=True,
+            use_container_width=True
+        )
+    with col2:
+        st.markdown("### Selected Players")
+        st.dataframe(
+            style_team_columns(player_view, ["Team 1", "Team 2", "Team 3"]),
+            hide_index=True,
+            use_container_width=True
+        )
+
+with tabs[1]:
+    st.subheader("Fixture Explorer")
+    st.markdown("Search across the master fixture list, then toggle between upcoming or all fixtures.")
+    search_fixtures_team = st.text_input("Filter fixtures by team", key="fixture_search")
+    show_upcoming = st.checkbox("Show only upcoming fixtures", value=True, key="fixture_upcoming")
+
+    fixture_view = fixtures[
         fixtures["Team A"].str.contains(search_fixtures_team, case=False, na=False) |
         fixtures["Team B"].str.contains(search_fixtures_team, case=False, na=False)
-        ]
-        styled_fixtures = fixtures.style.apply(highlight_today, axis=1)
+    ]
+    if show_upcoming:
+        now = pd.Timestamp.now(tz="Europe/London").tz_localize(None)
+        fixture_view = fixture_view[fixture_view["Date (UK Kick-Off)"] >= now]
+
+    if fixture_view.empty:
+        st.warning("No fixtures matched your filters.")
+    else:
+        styled_fixtures = fixture_view.style.apply(highlight_today, axis=1)
         st.dataframe(styled_fixtures, hide_index=True, use_container_width=True)
 
-else:
-    # Get teams
-    player_teams = draw_long[
-        draw_long["Name"].isin(selected_players)
-    ]["Team"].unique()
+with tabs[2]:
+    st.subheader("Sweepstake Draw")
+    st.markdown("Colour coding reflects FIFA ranking percentile — greener teams are ranked higher.")
+    search_draw = st.text_input("Search team or player", key="draw_search")
+    filtered_draw = draw[
+        draw["Team 1"].str.contains(search_draw, case=False, na=False) |
+        draw["Team 2"].str.contains(search_draw, case=False, na=False) |
+        draw["Team 3"].str.contains(search_draw, case=False, na=False) |
+        draw["Name"].str.contains(search_draw, case=False, na=False)
+    ]
+    styled_draw = style_team_columns(filtered_draw, ["Team 1", "Team 2", "Team 3"])
+    st.dataframe(styled_draw, hide_index=True, use_container_width=True)
 
-    # Filter fixtures
-    player_fixtures = fixtures[
-        fixtures["Team A"].isin(player_teams) |
-        fixtures["Team B"].isin(player_teams)
-    ].copy()
-
-    if player_fixtures.empty:
-        st.warning("No fixtures found for selected players")
-        st.stop()
-
-    st.write(f"{selected_players} Teams: {', '.join(sorted(player_teams))}")
-
-    st.dataframe(
-        player_fixtures.sort_values(by="Date (UK Kick-Off)"),
-        hide_index=True,
-        use_container_width=True
-    )
-
-
-st.subheader("🏆 Group Standings")
-
-fixtures_standings = load_data("data/world-cup-2026-schedule.csv").drop(columns=["status", "source"])
-standings = compute_group_standings(fixtures_standings)
-groups = sorted(standings["Group"].unique())
-NUM_COLS = 4  
-for i in range(0, len(groups), NUM_COLS):
-    cols = st.columns(NUM_COLS)
-
-    for j, group in enumerate(groups[i:i+NUM_COLS]):
-        with cols[j]:
-            st.markdown(f"### Group {group}")
-
-            group_df = standings[standings["Group"] == group].copy()
-            group_df = group_df.reset_index(drop=True)
-
-            st.dataframe(
-                group_df,
-                use_container_width=True,
-                hide_index=True
-            )
+with tabs[3]:
+    st.subheader("Group Standings")
+    fixtures_standings = load_data("data/world-cup-2026-schedule.csv").drop(columns=["status", "source"])
+    standings = compute_group_standings(fixtures_standings)
+    groups = sorted(standings["Group"].unique())
+    NUM_COLS = 4
+    for i in range(0, len(groups), NUM_COLS):
+        cols = st.columns(NUM_COLS)
+        for j, group in enumerate(groups[i:i+NUM_COLS]):
+            with cols[j]:
+                st.markdown(f"### Group {group}")
+                group_df = standings[standings["Group"] == group].copy()
+                group_df = group_df.reset_index(drop=True)
+                st.dataframe(
+                    group_df,
+                    use_container_width=True,
+                    hide_index=True
+                )
