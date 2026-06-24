@@ -36,7 +36,7 @@ match_number,stage,group,date,time_et,time_local,team_a,team_b,venue,city,countr
 35,Group Stage,F,2026-06-20,13:00,12:00,Netherlands,Sweden,NRG Stadium,Houston,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,5,1
 36,Group Stage,F,2026-06-20,00:00,22:00,Tunisia,Japan,Estadio BBVA,Monterrey,Mexico,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,0,4
 37,Group Stage,H,2026-06-21,18:00,18:00,Uruguay,Cape Verde,Hard Rock Stadium,Miami,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,2,2
-38,Group Stage,H,2026-06-21,12:00,12:00,Spain,Saudi Arabia,Mercedes-Benz Stadium,Atlanta,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,0,4
+38,Group Stage,H,2026-06-21,12:00,12:00,Spain,Saudi Arabia,Mercedes-Benz Stadium,Atlanta,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,4,0
 39,Group Stage,G,2026-06-21,15:00,12:00,Belgium,Iran,SoFi Stadium,Los Angeles,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,0,0
 40,Group Stage,G,2026-06-21,21:00,18:00,New Zealand,Egypt,BC Place,Vancouver,Canada,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,1,3
 41,Group Stage,I,2026-06-22,20:00,20:00,Norway,Senegal,MetLife Stadium,New York/New Jersey,United States,confirmed_group_fixture,https://www.roadtrips.com/world-cup/2026-world-cup-packages/schedule/,3,2
